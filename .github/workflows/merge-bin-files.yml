@@ -10,16 +10,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest  # Use the latest Windows runner (PowerShell is pre-installed)
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up PowerShell
-        uses: actions/setup-powershell@v2
-        with:
-          pwsh-version: '7.x'  # You can set the version of PowerShell you want
 
       - name: Merge .bin files
         run: |
