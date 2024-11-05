@@ -1,45 +1,49 @@
-#include <stdio.h>
-#include <stdlib.h>
+# Define the path to your local repository
+$repoDir = "C:\path\to\your\repository"  # Adjust this path to your local GitHub repository
 
-void merge_files(const char *output_filename, const char *files[], int num_files) {
-    FILE *outfile = fopen(output_filename, "wb");
-    if (outfile == NULL) {
-        perror("Error opening output file");
-        exit(1);
+# Define the output file where the merged content will be saved
+$outputFile = "C:\path\to\merged_udp_packets.bin"  # Adjust this to where you want the output file
+
+# Open the output file for writing
+$outputStream = [System.IO.File]::Create($outputFile)
+
+# List of specific folders that contain the .bin files you want to merge
+$folders = @(
+    "upstream", "upstream1", "upstream2", "upstream3", "upstream4",
+    "downstream", "downstream1", "downstream2", "downstream3", "downstream4"
+)
+
+# Function to merge .bin files from a specified directory
+function Merge-BinFilesFromFolder {
+    param (
+        [string]$folderPath
+    )
+
+    # Get all .bin files in the folder (without subdirectories)
+    $files = Get-ChildItem -Path $folderPath -Filter *.bin
+
+    # Iterate over each .bin file and append its content to the output file
+    foreach ($file in $files) {
+        Write-Host "Merging file: $($file.FullName)"
+        $fileStream = [System.IO.File]::OpenRead($file.FullName)
+        $fileStream.CopyTo($outputStream)
+        $fileStream.Close()
     }
-
-    for (int i = 0; i < num_files; i++) {
-        FILE *infile = fopen(files[i], "rb");
-        if (infile == NULL) {
-            perror("Error opening input file");
-            fclose(outfile);
-            exit(1);
-        }
-
-        // Copy file content to the output file
-        char buffer[1024];
-        size_t bytes_read;
-        while ((bytes_read = fread(buffer, 1, sizeof(buffer), infile)) > 0) {
-            fwrite(buffer, 1, bytes_read, outfile);
-        }
-
-        fclose(infile);
-    }
-
-    fclose(outfile);
-    printf("Files have been merged into %s\n", output_filename);
 }
 
-int main() {
-    // Array of upstream and downstream file paths
-    const char *files[] = {
-        "upstream1.bin", "upstream2.bin", "upstream3.bin", "upstream4.bin", "upstream5.bin",
-        "downstream1.bin", "downstream2.bin", "downstream3.bin", "downstream4.bin", "downstream5.bin"
-    };
-    int num_files = sizeof(files) / sizeof(files[0]);
+# Iterate over each folder in the list and merge the .bin files from each folder
+foreach ($folder in $folders) {
+    $folderPath = Join-Path -Path $repoDir -ChildPath $folder
 
-    // Merge files into a single binary file
-    merge_files("merged_udp_packets.bin", files, num_files);
-
-    return 0;
+    if (Test-Path $folderPath) {
+        Write-Host "Processing folder: $folderPath"
+        Merge-BinFilesFromFolder -folderPath $folderPath
+    } else {
+        Write-Warning "Folder not found: $folderPath"
+    }
 }
+
+# Close the output file stream
+$outputStream.Close()
+
+Write-Host "Merging completed! The merged file is saved as $outputFile"
